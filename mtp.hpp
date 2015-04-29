@@ -1,6 +1,6 @@
 #ifndef MTP_HPP_MARKOVMODEL_INCLUDED
 #define MTP_HPP_MARKOVMODEL_INCLUDED
-#include <unordered_map>
+#include <map>
 #include "prob_table.hpp"
 
 namespace markov {
@@ -37,7 +37,7 @@ public:
   void end();
 
   template <class RndGen>
-  B generate(const A &x, RndGen &gen) const;
+  B next(const A &x, RndGen &gen) const;
 
   bool empty();
 
@@ -46,7 +46,7 @@ public:
   void normalize();
 
 private:
-  std::unordered_map<A, prob_table<B>> _table;
+  std::map<A, prob_table<B>> _table;
 };
 
 template <class A, class B>
@@ -133,7 +133,7 @@ void mtp<A, B>::end() {
 
 template <class A, class B>
 template <class RndGen>
-B mtp<A, B>::generate(const A &x, RndGen &gen) const {
+B mtp<A, B>::next(const A &x, RndGen &gen) const {
   return _table.at(x).choose(gen);
 }
 

@@ -10,38 +10,50 @@ namespace markov {
 namespace impl {
 
 template <class T, class Container, class Derived>
-class markov_chain_base : mtp<Container, T> {
+class container_based : public mtp<Container, T> {
 public:
+  template <class C = Container>
+  container_based(C c = C()): _tmp(c) {}
+
   template <class Iter>
   void add_from_seq(Iter it, double prob=1) {
-    Iter last = it + static_cast<Derived*>(this)->order();
-    std::copy(it, last, _tmp.begin());
-    this->add(_tmp, *last, prob);
+    this->add(_tmp, *fill_tmp(it), prob);
   }
 
   template <class Iter>
   void set_from_seq(Iter it, double prob) {
-    Iter last = it + static_cast<Derived*>(this)->order();
-    std::copy(it, last, _tmp.begin());
-    this->set(_tmp, *last, prob);
+    this->set(_tmp, *fill_tmp(it), prob);
+  }
+
+  template <class Iter, class RndGen>
+  T next(Iter it, RndGen &gen) {
+    fill_tmp(it);
+    return mtp<Container, T>::next(_tmp, gen);
   }
 
 private:
+  template <class Iter>
+  Iter fill_tmp(Iter it) {
+    Iter last = it + static_cast<Derived*>(this)->order();
+    std::copy(it, last, _tmp.begin());
+    return last;
+  }
+
   Container _tmp;
 };
 
 }
 
 template <class T, unsigned Order>
-struct markov_chain
-    : impl::markov_chain_base<T, std::array<T, Order>, markov_chain<T, Order>> {
+struct markov_chain : public impl::container_based<T, std::array<T, Order>,
+    markov_chain<T, Order>> {
   unsigned order() const {
     return Order;
   }
 };
 
 template <class T>
-struct markov_chain<T, 1> : mtp<T, T> {
+struct markov_chain<T, 1> : public mtp<T, T> {
 public:
   unsigned order() const {
     return 1;
@@ -58,13 +70,13 @@ public:
   }
 
   template <class RndGen>
-  T generate(const T &current, RndGen &gen) {
+  T next(const T &current, RndGen &gen) {
     return this->generate(current, gen);
   }
 };
 
 template <class T>
-class markov_chain<T, 0> : prob_table<T> {
+class markov_chain<T, 0> : public prob_table<T> {
 public:
   unsigned order() const {
     return 0;
@@ -81,15 +93,19 @@ public:
   }
 
   template <class RndGen>
-  T generate(RndGen &gen) {
+  T next(RndGen &gen) {
     return this->choose(gen);
   }
 };
 
 template <class T>
-class markov_chain_nth
-    : impl::markov_chain_base<T, std::vector<T>, markov_chain_nth<T>> {
-  markov_chain_nth(unsigned order_arg): _order(order_arg) {}
+class markov_chain_nth : public impl::container_based<T, std::vector<T>,
+    markov_chain_nth<T>> {
+public:
+  markov_chain_nth(unsigned order_arg)
+      : impl::container_based<T, std::vector<T>, markov_chain_nth<T>>(
+          std::vector<T>(order_arg)),
+      _order(order_arg) {}
 
   unsigned order() const {
     return _order;

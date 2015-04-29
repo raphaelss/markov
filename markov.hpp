@@ -12,17 +12,22 @@ namespace impl {
 template <class T, class Container, class Derived>
 class container_based : public mtp<Container, T> {
 public:
+  typedef Container container_type;
+  typedef T type;
+
   template <class C = Container>
   container_based(C c = C()): _tmp(c) {}
 
   template <class Iter>
   void add_from_seq(Iter it, double prob=1) {
-    this->add(_tmp, *fill_tmp(it), prob);
+    Iter last = fill_tmp(it);
+    this->add(_tmp, *last, prob);
   }
 
   template <class Iter>
   void set_from_seq(Iter it, double prob) {
-    this->set(_tmp, *fill_tmp(it), prob);
+    Iter last = fill_tmp(it);
+    this->set(_tmp, *last, prob);
   }
 
   template <class Iter, class RndGen>
@@ -76,8 +81,7 @@ public:
 };
 
 template <class T>
-class markov_chain<T, 0> : public prob_table<T> {
-public:
+struct markov_chain<T, 0> : public prob_table<T> {
   unsigned order() const {
     return 0;
   }
@@ -138,6 +142,21 @@ void read_seq(T &chain, Iter begin, Iter end) {
   Iter last_begin = end - chain.order();
   for (; begin != last_begin; ++begin) {
     chain.add_from_seq(begin);
+  }
+}
+
+template <class RndGen, class MarkovChain, class Func>
+void generate_seq(RndGen &gen, MarkovChain &chain,
+    typename MarkovChain::container_type &seq, unsigned n, Func &&f) {
+  for (; n > 0; --n) {
+    try {
+      typename MarkovChain::type x(chain.next(seq, gen));
+      f(x);
+      seq.erase(seq.begin());
+      seq.push_back(x);
+    } catch (std::out_of_range &e) {
+      return;
+    }
   }
 }
 

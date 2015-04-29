@@ -8,13 +8,9 @@ int main() {
   std::vector<int> seq {0,1,2,0,3,4,5,6,7,8,0,1,0,3,4,5,6,7,2,0};
   markov::markov_chain_nth<int> chain = markov::markov_create<int>(2);
   markov::read_seq(chain, seq.begin(), seq.end());
-  std::vector <int> vec {0, 1};
-  int tmp;
-  for (int i = 0; i < 20; ++i) {
-    tmp = chain.next(vec, gen);
-    vec[0] = vec[1];
-    vec[1] = tmp;
-    std::cout << tmp << std::endl;
-  }
+  std::vector <int> vec {0, 3};
+  markov::generate_seq(gen, chain, vec, 10, [](int x) {
+    std::cout << x << std::endl;
+  });
   return 0;
 }

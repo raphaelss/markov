@@ -7,105 +7,96 @@
 
 namespace markov {
 
-template <class T, unsigned Order>
-class markov_chain {
+namespace impl {
+
+template <class T, class Container, class Derived>
+class markov_chain_base : mtp<Container, T> {
 public:
-  unsigned order() const {
-    return Order;
+  template <class Iter>
+  void add_from_seq(Iter it, double prob=1) {
+    Iter last = it + static_cast<Derived*>(this)->order();
+    std::copy(it, last, _tmp.begin());
+    this->add(_tmp, *last, prob);
   }
 
   template <class Iter>
-  void add(Iter it, double prob=1) {
-    Iter last = it + Order;
+  void set_from_seq(Iter it, double prob) {
+    Iter last = it + static_cast<Derived*>(this)->order();
     std::copy(it, last, _tmp.begin());
-    _mtp.add(_tmp, *last, prob);
-  }
-
-  template <class Iter>
-  void set(Iter it, double prob) {
-    Iter last = it + Order;
-    std::copy(it, last, _tmp.begin());
-    _mtp.set(_tmp, *last, prob);
+    this->set(_tmp, *last, prob);
   }
 
 private:
-  mtp<std::array<T, Order>, T> _mtp;
-  std::array<T, Order> _tmp;
+  Container _tmp;
+};
+
+}
+
+template <class T, unsigned Order>
+struct markov_chain
+    : impl::markov_chain_base<T, std::array<T, Order>, markov_chain<T, Order>> {
+  unsigned order() const {
+    return Order;
+  }
 };
 
 template <class T>
-class markov_chain<T, 1> {
+struct markov_chain<T, 1> : mtp<T, T> {
 public:
   unsigned order() const {
     return 1;
   }
 
   template <class Iter>
-  void add(Iter it, double prob=1) {
-    _mtp.add(*it, *(it + 1), prob);
+  void add_from_seq(Iter it, double prob=1) {
+    this->add(*it, *(it + 1), prob);
   }
 
   template <class Iter>
-  void set(Iter it, double prob) {
-    _mtp.set(*it, *(it + 1), prob);
+  void set_from_seq(Iter it, double prob) {
+    this->set(*it, *(it + 1), prob);
   }
 
   template <class RndGen>
-  T generate(T &current, RndGen &gen) {
-    return _mtp.generate(current, gen);
+  T generate(const T &current, RndGen &gen) {
+    return this->generate(current, gen);
   }
-
-private:
-  mtp<T, T> _mtp;
 };
 
 template <class T>
-class markov_chain<T, 0> {
+class markov_chain<T, 0> : prob_table<T> {
 public:
   unsigned order() const {
     return 0;
   }
 
   template <class Iter>
-  void add(Iter it, double prob=1) {
-    _mtp.add(*it, prob);
+  void add_from_seq(Iter it, double prob=1) {
+    this->add(*it, prob);
   }
 
   template <class Iter>
-  void set(Iter it, double prob) {
-    _mtp.set(*it, prob);
+  void set_from_seq(Iter it, double prob) {
+    this->set(*it, prob);
   }
 
-private:
-  prob_table<T> _mtp;
+  template <class RndGen>
+  T generate(RndGen &gen) {
+    return this->choose(gen);
+  }
 };
 
 template <class T>
-class markov_chain_nth {
+class markov_chain_nth
+    : impl::markov_chain_base<T, std::vector<T>, markov_chain_nth<T>> {
   markov_chain_nth(unsigned order_arg): _order(order_arg) {}
 
   unsigned order() const {
     return _order;
   }
 
-  template <class Iter>
-  void add(Iter it, double prob=1) {
-    Iter last = it + _order;
-    std::copy(it, last, _tmp.begin());
-    _mtp.add(_tmp, *last, prob);
-  }
-
-  template <class Iter>
-  void set(Iter it, double prob=1) {
-    Iter last = it + _order;
-    std::copy(it, last, _tmp.begin());
-    _mtp.set(_tmp, *last, prob);
-  }
-
 private:
   const unsigned _order;
-  mtp<std::vector<T>, T> _mtp;
-  std::vector<T> _tmp;
 };
 
 template <class T, unsigned Num>
@@ -125,7 +116,7 @@ void read_seq(T &chain, Iter begin, Iter end) {
   }
   Iter last_begin = end - chain.order();
   for (; begin != last_begin; ++begin) {
-    chain.add(begin);
+    chain.add_from_seq(begin);
   }
 }
 

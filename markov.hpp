@@ -26,9 +26,9 @@ public:
   }
 
   template <class Iter, class RndGen>
-  T next(Iter it, RndGen &gen) {
+  T next_it(Iter it, RndGen &gen) {
     fill_tmp(it);
-    return mtp<Container, T>::next(_tmp, gen);
+    return this->next(_tmp, gen);
   }
 
 private:
@@ -69,9 +69,9 @@ public:
     this->set(*it, *(it + 1), prob);
   }
 
-  template <class RndGen>
-  T next(const T &current, RndGen &gen) {
-    return this->generate(current, gen);
+  template <class Iter, class RndGen>
+  T next_it(Iter it, RndGen &gen) {
+    return this->next(*it, gen);
   }
 };
 
@@ -92,8 +92,13 @@ public:
     this->set(*it, prob);
   }
 
-  template <class RndGen>
-  T next(RndGen &gen) {
+  template <class Iter, class RndGen>
+  T next_it(Iter it, RndGen &gen) {
+    return this->choose(gen);
+  }
+
+  template <class Tt, class RndGen>
+  T next(Tt &&x, RndGen &gen) {
     return this->choose(gen);
   }
 };

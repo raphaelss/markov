@@ -11,7 +11,7 @@ int main() {
   std::vector <int> vec {0, 1};
   int tmp;
   for (int i = 0; i < 20; ++i) {
-    tmp = chain.next(vec.begin(), gen);
+    tmp = chain.next(vec, gen);
     vec[0] = vec[1];
     vec[1] = tmp;
     std::cout << tmp << std::endl;

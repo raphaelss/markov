@@ -3,4 +3,5 @@ project(markov)
 
 add_definitions(--std=c++14 -Wall -Werror -pedantic -g)
 
-add_executable(markov main.cpp)
+add_executable(words_markov words_markov.cpp)
+add_executable(char_markov char_markov.cpp)
